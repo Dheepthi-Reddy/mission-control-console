@@ -1,4 +1,4 @@
-name: tests
+name: ci
 
 on:
   push:
@@ -12,5 +12,5 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      # No ANTHROPIC_API_KEY is set: the suite must pass offline using FakeLLM.
+      # No ANTHROPIC_API_KEY is set.
       - run: uv run --locked pytest
