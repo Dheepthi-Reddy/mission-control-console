@@ -25,6 +25,14 @@ from app.pipeline.prompting import UNTRUSTED_NOTE_RULE, parse_json_object, repor
 
 CHECKS = ("injection", "missing_details", "panic")
 
+# Sent to the real model as a structured output (strict JSON schema form).
+REPLY_SCHEMA = {
+    "type": "object",
+    "properties": {"flagged": {"type": "boolean"}, "reason": {"type": "string"}},
+    "required": ["flagged", "reason"],
+    "additionalProperties": False,
+}
+
 _REPLY_FORMAT = (
     'Reply with only a JSON object, and nothing else: {"flagged": true or false, '
     '"reason": "one short sentence"}'

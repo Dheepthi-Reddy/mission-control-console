@@ -11,12 +11,9 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
     "pydantic>=2.6",
-]
-
-[project.optional-dependencies]
-# Real model adapter only; tests and CI never install it.
-anthropic = [
-    "anthropic>=0.40",
+    # Real model client. Tests never call it: they use FakeLLM (see tests/conftest.py).
+    "anthropic>=2.8",
+    "python-dotenv>=1.0",
 ]
 
 # uv installs the "dev" group by default on `uv run`, so tests need no extra flags.

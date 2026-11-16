@@ -43,6 +43,17 @@ class Classification(BaseModel):
     severity: Severity
 
 
+# Sent to the real model as a structured output (strict JSON schema form).
+REPLY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "subsystem": {"type": "string", "enum": list(SUBSYSTEMS)},
+        "severity": {"type": "string", "enum": list(SEVERITIES)},
+    },
+    "required": ["subsystem", "severity"],
+    "additionalProperties": False,
+}
+
 SYSTEM_PROMPT = f"""You sort launch anomaly reports for a Flight Director.
 
 Reply with only a JSON object matching this JSON schema, and nothing else:

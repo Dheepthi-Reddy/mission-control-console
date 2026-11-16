@@ -15,10 +15,18 @@ uv creates the virtual environment and installs dependencies on first run. No ot
 uv run uvicorn app.main:app --reload
 ```
 
-Then open http://127.0.0.1:8000/docs to file a report (`POST /reports`) and list them (`GET /reports`).
+Then open http://127.0.0.1:8000/docs to file a report (`POST /reports`), then read its
+analysis, trace and cost (`GET /reports/{id}/analysis`) and its briefing (`GET /reports/{id}/briefing`).
 
 Reports are saved in SQLite at `data/mission_control.db` (git-ignored), so they are still there
 after a restart. Set `MISSION_CONTROL_DB` to use a different file.
+
+### Using Claude
+
+With no API key the app runs in **demo mode**: every step runs, but model steps return canned
+replies and cost $0. To use Claude, copy `.env.example` to `.env` (git-ignored) and set
+`ANTHROPIC_API_KEY`. Every step uses `claude-opus-5-5` unless `MISSION_CONTROL_MODEL` says
+otherwise. `GET /health` shows which one is in use.
 
 ## Run the tests
 

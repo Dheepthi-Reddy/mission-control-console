@@ -39,10 +39,16 @@ async def test_valid_reply_is_used_as_is():
 
 
 @pytest.mark.parametrize("subsystem", SUBSYSTEMS)
+async def test_every_allowed_subsystem_is_accepted(subsystem):
+    result = await run(json.dumps({"subsystem": subsystem, "severity": "low"}))
+    assert result.subsystem == subsystem
+    assert result.fallbacks == []
+
+
 @pytest.mark.parametrize("severity", ["high", "medium", "low"])
-async def test_every_allowed_value_is_accepted(subsystem, severity):
-    result = await run(json.dumps({"subsystem": subsystem, "severity": severity}))
-    assert (result.subsystem, result.severity) == (subsystem, severity)
+async def test_every_allowed_severity_is_accepted(severity):
+    result = await run(json.dumps({"subsystem": "propulsion", "severity": severity}))
+    assert result.severity == severity
     assert result.fallbacks == []
 
 

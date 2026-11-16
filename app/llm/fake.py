@@ -17,8 +17,9 @@ class FakeLLM:
     (returned in order, last one repeated) for multi-round steps like draft/review.
     """
 
-    def __init__(self, replies: Mapping[str, str | Sequence[str]]):
+    def __init__(self, replies: Mapping[str, str | Sequence[str]], model: str = "fake"):
         self._replies = dict(replies)
+        self.model = model
         self._counts: dict[str, int] = {}
         self.calls: list[dict[str, str]] = []
 
@@ -39,5 +40,5 @@ class FakeLLM:
             text=text,
             input_tokens=_estimate_tokens(system + " " + prompt),
             output_tokens=_estimate_tokens(text),
-            model="fake",
+            model=self.model,
         )

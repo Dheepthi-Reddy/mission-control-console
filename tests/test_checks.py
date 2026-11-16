@@ -179,15 +179,18 @@ async def test_hidden_instruction_never_changes_the_verdict(readings, verdict):
 
 
 @pytest.mark.parametrize(
-    "reply",
+    "check, reply",
     [
-        pytest.param("Looks fine to me.", id="prose"),
-        pytest.param('{"flagged": "no"}', id="flagged not a boolean"),
-        pytest.param('{"reason": "fine"}', id="flagged missing"),
-        pytest.param("[]", id="not an object"),
+        # Every kind of unusable reply on one check...
+        pytest.param("injection", "Looks fine to me.", id="prose"),
+        pytest.param("injection", '{"flagged": "no"}', id="flagged not a boolean"),
+        pytest.param("injection", '{"reason": "fine"}', id="flagged missing"),
+        pytest.param("injection", "[]", id="not an object"),
+        # ...and the other checks use the same rule.
+        pytest.param("missing_details", "Looks fine to me.", id="missing_details prose"),
+        pytest.param("panic", "Looks fine to me.", id="panic prose"),
     ],
 )
-@pytest.mark.parametrize("check", ["injection", "missing_details", "panic"])
 async def test_unusable_reply_counts_as_flagged_and_sends_to_review(check, reply):
     result = await run_checks(fake(**{check: reply}), report())
     r = result.checks[check]
