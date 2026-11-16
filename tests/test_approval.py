@@ -105,11 +105,12 @@ def test_approval_needs_a_named_person(client, report_id, body, message):
     assert client.get(f"/reports/{report_id}/briefing").json()["status"] == "pending"
 
 
-def test_report_without_a_briefing_cannot_be_approved(client):
-    report = client.post("/reports", json=REPORT.model_dump()).json()
-    r = approve(client, report["id"], approved_by="K. Ito")
+def test_report_without_a_briefing_cannot_be_approved(client, db):
+    # Added straight to the store, so no pipeline has drafted a briefing for it.
+    report = ReportStore(db).add(REPORT)
+    r = approve(client, report.id, approved_by="K. Ito")
     assert r.status_code == 404
-    assert r.json() == {"message": f"No briefing for report {report['id']} yet"}
+    assert r.json() == {"message": f"No briefing for report {report.id} yet"}
 
 
 def test_unknown_report_has_no_briefing(client):
