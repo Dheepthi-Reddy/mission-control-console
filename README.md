@@ -15,7 +15,10 @@ uv creates the virtual environment and installs dependencies on first run. No ot
 uv run uvicorn app.main:app --reload
 ```
 
-Then open http://127.0.0.1:8000/health.
+Then open http://127.0.0.1:8000/docs to file a report (`POST /reports`) and list them (`GET /reports`).
+
+Reports are saved in SQLite at `data/mission_control.db` (git-ignored), so they are still there
+after a restart. Set `MISSION_CONTROL_DB` to use a different file.
 
 ## Run the tests
 
