@@ -7,7 +7,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.db import ReportStore
+from app.db import AlreadyApproved, NoBriefing, ReportStore
+from app.domain.briefing import ApprovalIn, Briefing
 from app.domain.report import Report, ReportIn
 
 DEFAULT_DB_PATH = "data/mission_control.db"
@@ -46,12 +47,13 @@ def _field(error: dict) -> str:
     return ".".join(loc) or "body"
 
 
-async def _validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
+async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = [{"field": _field(e), "message": _friendly(e)} for e in exc.errors()]
     summary = "; ".join(f"{e['field']} {e['message']}" for e in errors)
+    action = "Briefing not approved" if request.url.path.endswith("/approve") else "Report not filed"
     return JSONResponse(
         status_code=422,
-        content={"message": f"Report not filed: {summary}", "errors": errors},
+        content={"message": f"{action}: {summary}", "errors": errors},
     )
 
 
@@ -84,6 +86,26 @@ def create_app(db_path: str | Path | None = None) -> FastAPI:
         if report is None:
             return JSONResponse(status_code=404, content={"message": f"Report {report_id} not found"})
         return report
+
+    @app.get("/reports/{report_id}/briefing", response_model=Briefing)
+    def get_briefing(report_id: int, request: Request):
+        briefing = request.app.state.store.get_briefing(report_id)
+        if briefing is None:
+            return JSONResponse(status_code=404, content={"message": f"No briefing for report {report_id} yet"})
+        return briefing
+
+    # The only route that approves. The pipeline never calls it; a person does, by name.
+    @app.post("/reports/{report_id}/approve", response_model=Briefing)
+    def approve_briefing(report_id: int, approval: ApprovalIn, request: Request):
+        try:
+            return request.app.state.store.approve(report_id, approved_by=approval.approved_by)
+        except NoBriefing:
+            return JSONResponse(status_code=404, content={"message": f"No briefing for report {report_id} yet"})
+        except AlreadyApproved:
+            return JSONResponse(
+                status_code=409,
+                content={"message": f"Briefing for report {report_id} is already approved"},
+            )
 
     return app
 
