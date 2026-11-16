@@ -16,7 +16,13 @@ PRICES_PER_MTOK: dict[str, tuple[Decimal, Decimal]] = {
     "claude-opus-5-5": (Decimal("4.00"), Decimal("20.00")),
     "claude-sonnet-5-5": (Decimal("2.00"), Decimal("10.00")),
     "claude-haiku-5-5": (Decimal("0.10"), Decimal("0.50")),
+    # Models the server-side refusal fallback may answer with.
+    "claude-opus-5": (Decimal("5.00"), Decimal("25.00")),
+    "claude-opus-4-8": (Decimal("5.00"), Decimal("25.00")),
+    "claude-sonnet-5": (Decimal("2.00"), Decimal("10.00")),
+    # Not real models: offline test and demo clients.
     "fake": (Decimal("0"), Decimal("0")),
+    "demo": (Decimal("0"), Decimal("0")),
 }
 
 

@@ -59,6 +59,14 @@ class BriefingResult:
         return "pending"
 
 
+# Sent to the real model as a structured output for the review step.
+REVIEW_SCHEMA = {
+    "type": "object",
+    "properties": {"accepted": {"type": "boolean"}, "feedback": {"type": "string"}},
+    "required": ["accepted", "feedback"],
+    "additionalProperties": False,
+}
+
 DRAFT_SYSTEM = f"""You write short briefings for a Flight Director 90 minutes before a launch.
 
 Write at most 120 words of plain text (no JSON, no headings). State the verdict \

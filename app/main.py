@@ -1,17 +1,34 @@
+import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from dotenv import load_dotenv
+from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.config import choose_llm
 from app.db import AlreadyApproved, NoBriefing, ReportStore
+from app.domain.analysis import AnalysisOut
 from app.domain.briefing import ApprovalIn, Briefing
 from app.domain.report import Report, ReportIn
+from app.llm.client import LLMClient
+from app.pipeline.runner import analyse
 
 DEFAULT_DB_PATH = "data/mission_control.db"
+
+log = logging.getLogger("mission_control")
+
+
+async def run_pipeline(llm: LLMClient, store: ReportStore, report: Report) -> None:
+    """Analyse a filed report. A crash marks the analysis failed; the report itself stays saved."""
+    try:
+        store.save_analysis(report.id, await analyse(llm, report))
+    except Exception as exc:
+        log.exception("pipeline failed for report %s", report.id)
+        store.fail_analysis(report.id, f"{type(exc).__name__}: {exc}")
 
 
 def _friendly(error: dict) -> str:
@@ -57,24 +74,45 @@ async def _validation_error(request: Request, exc: RequestValidationError) -> JS
     )
 
 
-def create_app(db_path: str | Path | None = None) -> FastAPI:
-    """Build the app. The database opens on startup, so importing this module touches no files."""
+def create_app(db_path: str | Path | None = None, llm: LLMClient | None = None) -> FastAPI:
+    """Build the app. Settings are read on startup, so importing this module touches no files.
+
+    Pass `llm` to choose the model client (tests pass FakeLLM); otherwise it is
+    chosen from the environment and a git-ignored .env file (see app/config.py).
+    """
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        load_dotenv(override=False)  # real environment variables win over .env
         app.state.store = ReportStore(db_path or os.environ.get("MISSION_CONTROL_DB", DEFAULT_DB_PATH))
+        if llm is None:
+            app.state.llm, app.state.llm_label = choose_llm(os.environ)
+        else:
+            app.state.llm, app.state.llm_label = llm, "injected"
+        log.warning("model client: %s", app.state.llm_label)
         yield
 
     app = FastAPI(title="Mission Control: Go/No-Go Launch Console", lifespan=lifespan)
     app.add_exception_handler(RequestValidationError, _validation_error)
 
     @app.get("/health")
-    def health() -> dict[str, str]:
-        return {"status": "ok"}
+    def health(request: Request) -> dict[str, str]:
+        return {"status": "ok", "llm": request.app.state.llm_label}
 
     @app.post("/reports", status_code=201)
-    def file_report(report: ReportIn, request: Request) -> Report:
-        return request.app.state.store.add(report)
+    def file_report(report: ReportIn, request: Request, background: BackgroundTasks) -> Report:
+        store: ReportStore = request.app.state.store
+        saved = store.add(report)
+        store.start_analysis(saved.id)
+        background.add_task(run_pipeline, request.app.state.llm, store, saved)
+        return saved
+
+    @app.get("/reports/{report_id}/analysis", response_model=AnalysisOut)
+    def get_analysis(report_id: int, request: Request):
+        analysis = request.app.state.store.get_analysis(report_id)
+        if analysis is None:
+            return JSONResponse(status_code=404, content={"message": f"No analysis for report {report_id}"})
+        return analysis
 
     @app.get("/reports")
     def list_reports(request: Request) -> list[Report]:
