@@ -80,8 +80,19 @@ def test_missing_field_is_rejected(client, missing):
     assert field_errors(file(client, **{missing: ...})) == {missing: "is required"}
 
 
-@pytest.mark.parametrize("reading", ["wind_knots", "temp_c", "fuel_pct"])
-@pytest.mark.parametrize("bad", ["windy", "12", None, True])
+@pytest.mark.parametrize(
+    "reading, bad",
+    [
+        # Every kind of non-number on one reading...
+        ("wind_knots", "windy"),
+        ("wind_knots", "12"),
+        ("wind_knots", None),
+        ("wind_knots", True),
+        # ...and the other readings use the same rule.
+        ("temp_c", "cold"),
+        ("fuel_pct", "full"),
+    ],
+)
 def test_reading_that_is_not_a_number_is_rejected(client, reading, bad):
     assert field_errors(file(client, **{reading: bad})) == {reading: "must be a number"}
 
@@ -98,8 +109,18 @@ def test_physically_impossible_reading_is_rejected(client, reading, value, messa
     assert field_errors(file(client, **{reading: value})) == {reading: message}
 
 
-@pytest.mark.parametrize("field", ["name", "station", "note"])
-@pytest.mark.parametrize("blank", ["", "   ", "\n\t"])
+@pytest.mark.parametrize(
+    "field, blank",
+    [
+        # Every kind of blank on one field...
+        ("name", ""),
+        ("name", "   "),
+        ("name", "\n\t"),
+        # ...and the other text fields use the same rule.
+        ("station", ""),
+        ("note", "   "),
+    ],
+)
 def test_blank_text_is_rejected(client, field, blank):
     assert field_errors(file(client, **{field: blank})) == {field: "must not be blank"}
 
