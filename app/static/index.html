@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mission Control</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-view="list">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Mission Control home">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2" opacity=".35"/>
+        <path d="M16 5c4 3.5 6 8 6 12.5 0 2-.5 3.8-1.3 5.5h-9.4c-.8-1.7-1.3-3.5-1.3-5.5C10 13 12 8.5 16 5z" fill="currentColor"/>
+        <circle cx="16" cy="15" r="2.2" fill="var(--topbar)"/>
+        <path d="M13 24.5h6l-1 3h-4z" fill="#f59e0b"/>
+      </svg>
+      <span class="brand-text">
+        <strong>Mission Control</strong>
+        <span>Go/No-Go Console</span>
+      </span>
+    </a>
+
+    <nav class="stats" aria-label="Report status">
+      <button class="stat" data-filter="review" type="button">
+        <span class="stat-num" id="stat-review">0</span><span class="stat-label">need review</span>
+      </button>
+      <button class="stat" data-filter="pending" type="button">
+        <span class="stat-num" id="stat-pending">0</span><span class="stat-label">awaiting approval</span>
+      </button>
+      <button class="stat" data-filter="all" type="button">
+        <span class="stat-num" id="stat-total">0</span><span class="stat-label">reports</span>
+      </button>
+    </nav>
+
+    <div class="topbar-right">
+      <span class="clock" id="clock" aria-label="Current UTC time">--:--:-- UTC</span>
+      <span id="model-pill" class="pill" title="Checking model…"><span class="dot"></span><span id="model-label">connecting</span></span>
+      <button class="btn primary" id="new-report" type="button">
+        <span aria-hidden="true">＋</span><span class="btn-text">New report</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <aside class="sidebar" aria-label="Reports">
+      <div class="sidebar-tools">
+        <input id="search" type="search" placeholder="Search station, name, subsystem…" aria-label="Search reports">
+        <div class="segmented" role="tablist" aria-label="Filter reports">
+          <button role="tab" data-filter="all" aria-selected="true">All</button>
+          <button role="tab" data-filter="review" aria-selected="false">Review</button>
+          <button role="tab" data-filter="pending" aria-selected="false">Pending</button>
+          <button role="tab" data-filter="approved" aria-selected="false">Approved</button>
+        </div>
+      </div>
+      <ul id="report-list" class="report-list"></ul>
+      <div id="list-empty" class="empty small" hidden>
+        <p>No reports match.</p>
+      </div>
+    </aside>
+
+    <section class="detail" id="detail" aria-live="polite">
+      <div class="empty">
+        <div class="empty-icon" aria-hidden="true">◎</div>
+        <h2>No report selected</h2>
+        <p>Pick a report from the list, or file a new one.</p>
+        <button class="btn primary" type="button" data-action="new-report">＋ New report</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="report-dialog" aria-labelledby="dialog-title">
+    <!-- novalidate: the server checks every field and its messages appear under each input. -->
+    <form id="report-form" novalidate>
+      <header class="dialog-head">
+        <h2 id="dialog-title">File an anomaly report</h2>
+        <button type="button" class="icon-btn" data-action="close-dialog" aria-label="Close">✕</button>
+      </header>
+      <div class="dialog-body">
+        <div class="grid two">
+          <label>Engineer name
+            <input name="name" autocomplete="name" placeholder="e.g. R. Okafor">
+            <span class="field-error" data-for="name"></span>
+          </label>
+          <label>Station
+            <input name="station" placeholder="e.g. PROP">
+            <span class="field-error" data-for="station"></span>
+          </label>
+        </div>
+        <fieldset>
+          <legend>Readings</legend>
+          <div class="grid three">
+            <label><span>Wind <span class="unit">knots</span></span>
+              <input name="wind_knots" type="number" step="any" inputmode="decimal">
+              <span class="hint">Limit ≤ 25</span>
+              <span class="field-error" data-for="wind_knots"></span>
+            </label>
+            <label><span>Temperature <span class="unit">°C</span></span>
+              <input name="temp_c" type="number" step="any" inputmode="decimal">
+              <span class="hint">Limit ≥ 4</span>
+              <span class="field-error" data-for="temp_c"></span>
+            </label>
+            <label><span>Fuel <span class="unit">%</span></span>
+              <input name="fuel_pct" type="number" step="any" inputmode="decimal">
+              <span class="hint">Limit 98–100</span>
+              <span class="field-error" data-for="fuel_pct"></span>
+            </label>
+          </div>
+        </fieldset>
+        <label>Note
+          <textarea name="note" rows="4" placeholder="What did you see, on which component, and when?"></textarea>
+          <span class="field-error" data-for="note"></span>
+        </label>
+        <p id="form-message" class="form-message" role="alert"></p>
+      </div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn ghost" data-action="close-dialog">Cancel</button>
+        <button type="submit" class="btn primary">File report</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+</body>
+</html>

@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from app.domain.analysis import AnalysisOut
+from app.domain.analysis import AnalysisOut, ReportSummary
 from app.domain.briefing import Briefing
 from app.domain.report import Report, ReportIn
 
@@ -133,6 +133,27 @@ class ReportStore:
         with closing(self._connect()) as conn:
             rows = conn.execute(f"SELECT {', '.join(COLUMNS)} FROM reports ORDER BY id DESC").fetchall()
         return [Report(**dict(row)) for row in rows]
+
+    def list_summaries(self) -> "list[ReportSummary]":  # quoted: the list() method above shadows the builtin here
+        """Every report with its analysis and briefing status, newest first, in one query."""
+        with closing(self._connect()) as conn:
+            rows = conn.execute(
+                "SELECT r.id, r.created_at, r.name, r.station,"
+                "  a.status AS analysis_status, a.verdict, a.subsystem, a.effective_severity,"
+                "  a.brief_by_minutes, a.needs_review, a.total_cost_usd,"
+                "  b.status AS briefing_status"
+                " FROM reports r"
+                " LEFT JOIN analyses a ON a.report_id = r.id"
+                " LEFT JOIN briefings b ON b.report_id = r.id"
+                " ORDER BY r.id DESC"
+            ).fetchall()
+        summaries = []
+        for row in rows:
+            data = dict(row)
+            if data["needs_review"] is not None:
+                data["needs_review"] = bool(data["needs_review"])
+            summaries.append(ReportSummary(**data))
+        return summaries
 
     # --- briefings ------------------------------------------------------------
 

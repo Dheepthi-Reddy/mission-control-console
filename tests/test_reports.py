@@ -147,7 +147,9 @@ def test_every_bad_field_is_reported_at_once(client):
 
 def test_error_response_has_one_readable_message(client):
     body = file(client, name="", wind_knots="calm").json()
-    assert body["message"] == "Report not filed: name must not be blank; wind_knots must be a number"
+    # Readable labels in the summary; the field keys stay in errors[] for the form.
+    assert body["message"] == "Report not filed: Engineer name must not be blank; Wind must be a number"
+    assert [e["field"] for e in body["errors"]] == ["name", "wind_knots"]
 
 
 def test_body_that_is_not_json_is_rejected(client):

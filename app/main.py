@@ -7,17 +7,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import choose_llm
 from app.db import AlreadyApproved, NoBriefing, ReportStore
-from app.domain.analysis import AnalysisOut
+from app.domain.analysis import AnalysisOut, ReportSummary
 from app.domain.briefing import ApprovalIn, Briefing
 from app.domain.report import Report, ReportIn
 from app.llm.client import LLMClient
 from app.pipeline.runner import analyse
 
 DEFAULT_DB_PATH = "data/mission_control.db"
+STATIC_DIR = Path(__file__).parent / "static"
 
 log = logging.getLogger("mission_control")
 
@@ -64,9 +66,27 @@ def _field(error: dict) -> str:
     return ".".join(loc) or "body"
 
 
+# What people call each field. The API's `errors[].field` keeps the key, so a
+# form can mark the right input; the readable summary uses these labels.
+FIELD_LABELS = {
+    "name": "Engineer name",
+    "station": "Station",
+    "wind_knots": "Wind",
+    "temp_c": "Temperature",
+    "fuel_pct": "Fuel",
+    "note": "Note",
+    "approved_by": "Approver name",
+    "body": "The request",
+}
+
+
+def _label(field: str) -> str:
+    return FIELD_LABELS.get(field, f'"{field}"')
+
+
 async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = [{"field": _field(e), "message": _friendly(e)} for e in exc.errors()]
-    summary = "; ".join(f"{e['field']} {e['message']}" for e in errors)
+    summary = "; ".join(f"{_label(e['field'])} {e['message']}" for e in errors)
     action = "Briefing not approved" if request.url.path.endswith("/approve") else "Report not filed"
     return JSONResponse(
         status_code=422,
@@ -94,6 +114,15 @@ def create_app(db_path: str | Path | None = None, llm: LLMClient | None = None) 
 
     app = FastAPI(title="Mission Control: Go/No-Go Launch Console", lifespan=lifespan)
     app.add_exception_handler(RequestValidationError, _validation_error)
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+    @app.get("/", include_in_schema=False)
+    def console() -> FileResponse:
+        return FileResponse(STATIC_DIR / "index.html")
+
+    @app.get("/console/reports")
+    def console_reports(request: Request) -> list[ReportSummary]:
+        return request.app.state.store.list_summaries()
 
     @app.get("/health")
     def health(request: Request) -> dict[str, str]:
