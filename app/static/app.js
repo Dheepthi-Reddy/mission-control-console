@@ -336,7 +336,7 @@ function overviewView(report, analysis, briefing) {
     el("div", { class: "card" }, [
       el("h3", { text: "Assessment" }),
       el("dl", { class: "facts" }, [
-        fact("Verdict", `${verdictText(analysis.verdict)} · from code`),
+        fact("Verdict", verdictText(analysis.verdict)),
         fact("Subsystem", analysis.subsystem),
         fact("Severity", severity),
         fact("Brief by", `${analysis.brief_by_minutes} minutes`),
