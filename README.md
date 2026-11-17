@@ -15,8 +15,9 @@ uv creates the virtual environment and installs dependencies on first run. No ot
 uv run uvicorn app.main:app --reload
 ```
 
-Then open http://127.0.0.1:8000/docs to file a report (`POST /reports`), then read its
-analysis, trace and cost (`GET /reports/{id}/analysis`) and its briefing (`GET /reports/{id}/briefing`).
+Then open **http://127.0.0.1:8000/** for the console: file a report, then see its verdict,
+brief-by time, briefing (with the approve button), cost, and one trace card per step.
+The API is documented at http://127.0.0.1:8000/docs.
 
 Reports are saved in SQLite at `data/mission_control.db` (git-ignored), so they are still there
 after a restart. Set `MISSION_CONTROL_DB` to use a different file.

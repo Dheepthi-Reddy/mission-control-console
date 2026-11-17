@@ -26,6 +26,23 @@ class ViolationOut(BaseModel):
     limit: str
 
 
+class ReportSummary(BaseModel):
+    """One row of the console's report list. Analysis fields are empty until it is ready."""
+
+    id: int
+    created_at: datetime
+    name: str
+    station: str
+    analysis_status: AnalysisStatus | None
+    verdict: Literal["go", "no_go"] | None
+    subsystem: str | None
+    effective_severity: str | None
+    brief_by_minutes: int | None
+    needs_review: bool | None
+    total_cost_usd: Decimal | None
+    briefing_status: Literal["pending", "approved"] | None
+
+
 class AnalysisOut(BaseModel):
     report_id: int
     status: AnalysisStatus
