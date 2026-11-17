@@ -50,6 +50,23 @@ def test_console_assets_are_served(client, asset):
     assert client.get(f"/static/{asset}").status_code == 200
 
 
+@pytest.mark.parametrize("asset", ["app.js", "styles.css"])
+def test_page_links_each_asset_by_a_hash_of_its_contents(client, asset):
+    # A changed file gets a new URL, so a browser can never run an old copy.
+    import hashlib
+
+    digest = hashlib.sha256((STATIC / asset).read_bytes()).hexdigest()[:12]
+    page = client.get("/").text
+    assert f"/static/{asset}?v={digest}" in page
+    assert client.get(f"/static/{asset}?v={digest}").status_code == 200
+
+
+@pytest.mark.parametrize("path", ["/", "/static/app.js", "/static/styles.css"])
+def test_browser_always_checks_for_a_newer_console(client, path):
+    # Without this, a browser can keep running an old app.js after an update.
+    assert client.get(path).headers["cache-control"] == "no-cache"
+
+
 # --- the filing form ----------------------------------------------------------
 
 

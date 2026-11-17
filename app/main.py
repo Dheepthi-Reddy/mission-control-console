@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import os
 from collections.abc import AsyncIterator
@@ -7,7 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import choose_llm
@@ -116,9 +117,24 @@ def create_app(db_path: str | Path | None = None, llm: LLMClient | None = None) 
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+    @app.middleware("http")
+    async def always_check_for_a_newer_console(request: Request, call_next):
+        # no-cache: the browser may keep its copy but must check it is current
+        # (a cheap ETag check), so a changed app.js is never served stale.
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.get("/", include_in_schema=False)
-    def console() -> FileResponse:
-        return FileResponse(STATIC_DIR / "index.html")
+    def console() -> HTMLResponse:
+        # Each asset URL carries a hash of the file, so a changed app.js or styles.css
+        # gets a new URL and no browser can reuse an old copy of it.
+        html = (STATIC_DIR / "index.html").read_text()
+        for asset in ("app.js", "styles.css"):
+            digest = hashlib.sha256((STATIC_DIR / asset).read_bytes()).hexdigest()[:12]
+            html = html.replace(f"/static/{asset}", f"/static/{asset}?v={digest}")
+        return HTMLResponse(html)
 
     @app.get("/console/reports")
     def console_reports(request: Request) -> list[ReportSummary]:
