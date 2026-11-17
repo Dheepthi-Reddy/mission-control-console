@@ -93,9 +93,9 @@ def test_approving_twice_is_rejected(client, report_id):
 @pytest.mark.parametrize(
     "body, message",
     [
-        ({}, "approved_by is required"),
-        ({"approved_by": "  "}, "approved_by must not be blank"),
-        ({"approved_by": "K. Ito", "status": "approved"}, "status is not an accepted field"),
+        ({}, "Approver name is required"),
+        ({"approved_by": "  "}, "Approver name must not be blank"),
+        ({"approved_by": "K. Ito", "status": "approved"}, '"status" is not an accepted field'),
     ],
 )
 def test_approval_needs_a_named_person(client, report_id, body, message):
